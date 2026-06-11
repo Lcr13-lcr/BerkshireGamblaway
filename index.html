@@ -389,7 +389,7 @@ function emojis(a,n){const r=$('erain');for(let i=0;i<n;i++)setTimeout(()=>{cons
 function genCrash(){
   if(isSp)return 2+Math.random()*8;
   if(cstr>=3&&Math.random()<.55)return 1.8+Math.random()*4;
-  if(Math.random()<.15)return 1+Math.random()*.12;
+  if(Math.random()<.09)return 1+Math.random()*.12;
   if(wstr>=3&&Math.random()<.55)return 1.05+Math.random()*.65;
   if(acOn&&acAt>1.1&&Math.random()<.35)return Math.max(1.05,acAt*(.82+Math.random()*.16));
   return Math.min(1/(1-Math.random()*.99),60);
