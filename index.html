@@ -150,6 +150,13 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
 #streakIncentiveBanner{display:none;border-radius:var(--r);border:1px solid;padding:10px 14px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;text-align:center;letter-spacing:.2px;animation:pulseIn .4s ease}
 @keyframes pulseIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
 
+/* Mobile-only button — hidden on desktop, shown on mobile via media query */
+#mainBtnMob{display:none;width:100%;padding:15px;font-family:'Space Grotesk',sans-serif !important;font-size:17px;font-weight:700;border:none !important;border-radius:var(--r);cursor:pointer;touch-action:manipulation;-webkit-appearance:none;appearance:none}
+#mainBtnMob.idle{background:linear-gradient(135deg,#00c853,#00e676) !important;color:#001f0f !important;box-shadow:0 4px 20px rgba(0,230,118,.28)}
+#mainBtnMob.betting{background:linear-gradient(135deg,#ff1744,#ff5252) !important;color:#fff !important;box-shadow:0 4px 20px rgba(255,23,68,.28)}
+#mainBtnMob.waiting{background:var(--bg3) !important;color:var(--text2) !important;border:1px solid var(--border) !important}
+#mainBtnMob:active{transform:scale(.97)}
+
 /* ── MOBILE TABS (hidden on desktop) ── */
 .ctrl-panel{display:none}
 .ctrl-tabs{display:flex;border-bottom:1px solid var(--border)}
@@ -229,6 +236,8 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
   .mob-stats{display:flex;gap:6px}
   .mob-summary-btn{display:block;width:100%;padding:11px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);border-radius:var(--r);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation}
   .desk-summary-btn{display:none}
+  #mainBtnMob{display:block}
+  .right-panel #mainBtn{display:none}
 
   /* Toast: respect safe area */
   #toast{bottom:calc(18px + env(safe-area-inset-bottom));font-size:13px;padding:11px 18px}
@@ -393,7 +402,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
 
   <!-- MOBILE STREAK BANNER + BTN (outside grid on mobile) -->
   <div id="streakIncentiveBannerMob" style="display:none;border-radius:var(--r);border:1px solid;padding:10px 14px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;text-align:center"></div>
-  <button id="mainBtnMob" class="idle" onclick="handleBtn()" style="display:none;width:100%;padding:15px;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;border:none;border-radius:var(--r);cursor:pointer;touch-action:manipulation">🚀 Iniciar ronda</button>
+  <button id="mainBtnMob" class="idle" onclick="handleBtn()">🚀 Iniciar ronda</button>
   <button class="mob-summary-btn" onclick="showSummary()">📊 Ver resumen</button>
 
 </div><!-- /app -->
@@ -435,12 +444,8 @@ const isMobile=()=>window.innerWidth<=700;
 function getBetInput(){return isMobile()?document.getElementById('betInputMob'):document.getElementById('betInput');}
 function getMainBtn(){return isMobile()?document.getElementById('mainBtnMob'):document.getElementById('mainBtn');}
 
-// Show/hide mobile vs desktop button on resize
-function applyLayout(){
-  const mob=isMobile();
-  document.getElementById('mainBtnMob').style.display=mob?'block':'none';
-  document.getElementById('mainBtn').style.display=mob?'none':'block'; // keep in desktop panel
-}
+// Layout is handled by CSS media queries; JS just keeps button states in sync
+function applyLayout(){}
 applyLayout();
 window.addEventListener('resize',applyLayout);
 
@@ -607,7 +612,9 @@ function generateCrash(){
 
 // ── DRAW ──
 function drawChart(){
-  const W=canvas.offsetWidth,H=canvas.offsetHeight;canvas.width=W;canvas.height=H;ctx.clearRect(0,0,W,H);
+  const W=canvas.width||canvas.offsetWidth,H=canvas.height||canvas.offsetHeight;
+  if(!W||!H)return;
+  ctx.clearRect(0,0,W,H);
   const crashed=state==='crashed',lc=crashed?'#ff1744':'#00e676',gc=crashed?'rgba(255,23,68,':'rgba(0,230,118,';
   ctx.setLineDash([4,8]);ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
   for(let i=1;i<6;i++){const y=H*i/6;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
@@ -647,6 +654,7 @@ function tick(ts){
   if(hasBet)updatePotential();
   if(hasBet&&autoEnabled&&!isMysteryRound&&currentMult>=autoCashoutAt){doCashout();return;}
   if(currentMult>=crashAt){doCrash();return;}
+  if(!canvas.width)resizeCanvas();
   drawChart();animFrame=requestAnimationFrame(tick);
 }
 
@@ -787,7 +795,15 @@ function showSummary(){
 function closeSummary(){document.getElementById('summaryModal').classList.remove('show');}
 function resetSession(){sessionPL=0;sessionRounds=0;sessionBigWin=0;sessionBestMult=0;balance=5000;updateBalance();closeSummary();showToast('🔄 Nueva sesión iniciada','#7c3aed');}
 
-updatePotential();updateXPBar();drawChart();
+updatePotential();updateXPBar();
+function resizeCanvas(){
+  const wrap=document.getElementById('chart-wrap');
+  canvas.width=wrap.clientWidth;
+  canvas.height=wrap.clientHeight;
+}
+// Double rAF: guarantees layout is fully painted before we measure & draw
+requestAnimationFrame(()=>requestAnimationFrame(()=>{resizeCanvas();drawChart();}));
+window.addEventListener('resize',()=>{resizeCanvas();if(state!=='running')drawChart();});
 </script>
 </body>
 </html>
